@@ -1,93 +1,136 @@
-// 1. Configuramos Supabase con tus claves
+// ==========================================
+// 1. CONFIGURACIÓN DE SUPABASE
+// ==========================================
 const supabaseUrl = 'https://rbtmruydqwnhfgqmqrae.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidG1ydXlkcXduaGZncW1xcmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDk5NzUsImV4cCI6MjA4OTYyNTk3NX0.7TJpYffiCBMpG6Wbou-bE5opqKae-VRDOboDOnSuybI'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidG1ydXlkcXduaGZncW1xcmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDk5NzUsImV4cCI6MjA4OTYyNTk3NX0.7TJpYffiCBMpG6Wbou-bE5opqKae-VRDOboDOnSuybI';
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-let scannerActivo = true;
+// Variables Globales
+let usuarioActual = null;
+let html5QrcodeScanner = null;
 
-async function iniciarSistema() {
-    // 2. Verificamos si el usuario está logueado
-    const { data: { session } } = await supabaseClient.auth.getSession();
+// ==========================================
+// 2. INICIAR APLICACIÓN Y VERIFICAR SESIÓN (Manto Invisible)
+// ==========================================
+async function initApp() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    if (!user) {
+        // Si no hay usuario logueado, lo mandamos al login de inmediato
+        window.location.replace('index.html'); 
+        return;
+    }
+    
+    // Si la sesión es válida, le quitamos la invisibilidad a la página
+    document.body.style.opacity = '1';
+    usuarioActual = user;
 
-    if (!session) {
-        window.location.href = 'index.html';
+    // Buscar el nombre del profesor para el saludo
+    const { data: profe } = await supabaseClient
+        .from('profesores')
+        .select('nombre_completo')
+        .eq('id', user.id)
+        .single();
+
+    if (profe) {
+        document.getElementById('saludoProfesor').textContent = `¡Bienvenido, ${profe.nombre_completo}!`;
+    }
+
+    iniciarEscaner();
+}
+
+// ==========================================
+// 3. CONFIGURAR LA CÁMARA (Librería html5-qrcode)
+// ==========================================
+function iniciarEscaner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+    }
+
+    html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { fps: 10, qrbox: {width: 250, height: 250} }, 
+        false
+    );
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+}
+
+// ==========================================
+// 4. LÓGICA CUANDO EL QR SE LEE CON ÉXITO
+// ==========================================
+async function onScanSuccess(decodedText, decodedResult) {
+    html5QrcodeScanner.clear();
+    mostrarMensaje('Verificando en el sistema...', 'info');
+
+    const hoy = new Date().toLocaleDateString('en-CA');
+    const inicioDia = new Date(`${hoy}T00:00:00`).toISOString();
+    const finDia = new Date(`${hoy}T23:59:59`).toISOString();
+
+    // Filtro de Seguridad: Buscar si ya vino hoy
+    const { data: asistenciasHoy, error: errorBusqueda } = await supabaseClient
+        .from('asistencias')
+        .select('id')
+        .eq('profesor_id', usuarioActual.id)
+        .gte('fecha_hora', inicioDia)
+        .lte('fecha_hora', finDia);
+
+    if (errorBusqueda) {
+        mostrarMensaje('Error de conexión con el servidor.', 'danger');
+        setTimeout(iniciarEscaner, 3000);
         return;
     }
 
-    // 3. Mostramos el nombre del profesor de forma segura
-    const nombre = localStorage.getItem('nombreProfesor') || 'Profesor';
-    const saludoElement = document.getElementById('saludoProfesor');
-    if (saludoElement) {
-        saludoElement.textContent = `¡Bienvenido, ${nombre}!`;
+    // ¿Ya tenía registro?
+    if (asistenciasHoy && asistenciasHoy.length > 0) {
+        mostrarMensaje('¡Atención! Tu asistencia de hoy YA fue registrada anteriormente.', 'warning');
+        setTimeout(iniciarEscaner, 4000); 
+        return;
     }
 
-    // 4. Encendemos la cámara y el escáner
-    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 } 
-    }, false);
-
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-
-    // 5. Lógica principal al leer un código QR
-    async function onScanSuccess(textoDelQR) {
-        if (!scannerActivo) return; 
-
-        // Calculamos la fecha de hoy para armar el código esperado
-        const hoy = new Date();
-        const dia = String(hoy.getDate()).padStart(2, '0');
-        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-        const anio = hoy.getFullYear();
-        
-        // El código debe coincidir exactamente con la fecha actual
-        const codigoEsperado = `asistencia_${anio}${mes}${dia}`; 
-
-        if (textoDelQR === codigoEsperado) {
-            scannerActivo = false; 
-            html5QrcodeScanner.clear(); // Apagamos la cámara
-
-            mostrarMensaje("Guardando asistencia...", "info");
-
-            // Guardamos en la tabla de Supabase
-            const { error } = await supabaseClient
-                .from('asistencias')
-                .insert([{ profesor_id: session.user.id }]);
-
-            if (error) {
-                mostrarMensaje("Error: " + error.message, "danger");
-                scannerActivo = true; 
-            } else {
-                mostrarMensaje("¡Asistencia registrada exitosamente! ✅", "success");
-                
-                // Cerramos sesión después de 3 segundos
-                setTimeout(async () => {
-                    await supabaseClient.auth.signOut();
-                    window.location.href = 'index.html';
-                }, 3000);
+    // Guardar Asistencia
+    const { error: errorInsert } = await supabaseClient
+        .from('asistencias')
+        .insert([
+            {
+                profesor_id: usuarioActual.id,
+                fecha_hora: new Date().toISOString(),
+                estado: 'presente'
             }
-        } else {
-            // Si escanean una foto de un QR de ayer o cualquier otro código
-            mostrarMensaje("Código QR vencido o inválido.", "warning");
-        }
+        ]);
+
+    if (errorInsert) {
+        mostrarMensaje('Error al guardar tu asistencia.', 'danger');
+        setTimeout(iniciarEscaner, 3000);
+    } else {
+        mostrarMensaje('✅ ¡Asistencia Registrada Exitosamente!', 'success');
+        
+        // Auto-Cierre de sesión
+        setTimeout(() => {
+            document.getElementById('btnCerrarSesion').click();
+        }, 3000);
     }
-
-    // Dejamos esto vacío para que no tire errores en consola mientras busca el QR
-    function onScanFailure(error) {} 
 }
 
-// Función auxiliar para las alertas visuales
+// ==========================================
+// 5. FUNCIONES AUXILIARES Y EVENTOS
+// ==========================================
+function onScanFailure(error) {
+    // console.warn(`Error de escaneo: ${error}`);
+}
+
 function mostrarMensaje(texto, tipo) {
-    const div = document.getElementById('mensaje');
-    div.textContent = texto;
-    div.className = `alert alert-${tipo} mt-3 text-center`;
-    div.style.display = 'block';
+    const msj = document.getElementById('mensaje');
+    if (msj) {
+        msj.textContent = texto;
+        msj.className = `alert alert-${tipo}`; 
+        msj.style.display = 'block';
+    }
 }
 
-// Botón para salir manualmente
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
-    window.location.href = 'index.html';
+    window.location.replace('index.html');
 });
 
-// Arrancamos el sistema
-iniciarSistema();
+// Arrancar el motor
+initApp();
