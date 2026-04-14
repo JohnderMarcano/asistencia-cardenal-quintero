@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración – U.E.N Cardenal Quintero</title>
+  <link rel="icon" type="image/png" href="assets/logo-colegio.png">
+
+  <!-- Librerías originales conservadas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0B2E59;
+      --navy-dark:  #0d3669;
+      --red:        #E63B2E;
+      --red-hover:  #C93325;
+      --bg:         #F7F6F2;
+      --bg-card:    #ffffff;
+      --border:     rgba(0,0,0,0.08);
+      --text:       #1A1A18;
+      --muted:      #6B6A65;
+      --hint:       #B0AFA9;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--navy);
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-logo {
+      width: 32px; height: 32px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .topbar-logo svg {
+      width: 15px; height: 15px;
+      stroke: rgba(255,255,255,0.7);
+      fill: none; stroke-width: 1.8;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .topbar-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.88);
+      letter-spacing: 0.01em;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav {
+      height: 32px;
+      padding: 0 13px;
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+      border: none;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+    }
+
+    .btn-nav:active { transform: scale(0.97); }
+
+    .btn-nav svg {
+      width: 13px; height: 13px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .btn-qr {
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.80);
+      border: 0.5px solid rgba(255,255,255,0.15);
+    }
+    .btn-qr:hover { background: rgba(255,255,255,0.16); color: rgba(255,255,255,0.88); }
+
+    .btn-add { background: var(--red); color: #fff; }
+    .btn-add:hover { background: var(--red-hover); }
+
+    .btn-exit {
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      border: 0.5px solid rgba(255,255,255,0.15);
+    }
+    .btn-exit:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+
+    /* ── PAGE ── */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── STAT CARDS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 400px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      letter-spacing: 0.03em;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--hint);
+      margin-top: 3px;
+    }
+
+    /* ── MAIN TABLE CARD ── */
+    .main-card {
+      background: var(--bg-card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.1rem 1.5rem;
+      border-bottom: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .card-header-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--navy);
+    }
+
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-input {
+      height: 36px;
+      padding: 0 11px;
+      background: var(--bg);
+      border: 0.5px solid rgba(0,0,0,0.10);
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .filter-input:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(11,46,89,0.07);
+      background: #fff;
+    }
+
+    .btn-filter {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, transform 0.1s;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .btn-filter:active { transform: scale(0.97); }
+
+    .btn-filter svg {
+      width: 13px; height: 13px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .btn-search  { background: var(--navy);  color: #fff; }
+    .btn-search:hover { background: var(--navy-dark); }
+
+    .btn-clear   { background: var(--bg); color: var(--muted); border: 0.5px solid rgba(0,0,0,0.10); }
+    .btn-clear:hover { background: #EEEEE9; }
+
+    .btn-excel   { background: #EAF3DE; color: #27500A; border: 0.5px solid #639922; }
+    .btn-excel:hover { background: #ddeece; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left; /* <--- ¡ESTA ES LA LÍNEA MÁGICA! */
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      background: var(--bg);
+      border-bottom: 0.5px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 0.5px solid rgba(0,0,0,0.05);
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover   { background: #FAFAF8; }
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody td {
+      text-align: left; /* <--- Y ASEGÚRATE DE QUE ESTA TAMBIÉN ESTÉ AQUÍ */
+      padding: 12px 16px;
+      font-size: 13.5px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .cell-name   { font-weight: 500; }
+    .cell-cedula { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--muted); }
+    .cell-date   { font-size: 12.5px; color: var(--muted); }
+
+    .time-badge {
+      display: inline-block;
+      background: #E6F1FB;
+      color: #0C447C;
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 2.5rem;
+      color: var(--hint);
+      font-size: 13px;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11,46,89,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 1rem;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 14px;
+      border: 0.5px solid var(--border);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-head {
+      background: var(--navy);
+      padding: 1.1rem 1.4rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .modal-head h5 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.55);
+      font-size: 20px;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.1s;
+    }
+
+    .modal-close:hover { color: #fff; }
+
+    .modal-body { padding: 1.4rem; }
+
+    .m-field { margin-bottom: 14px; }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 5px;
+      letter-spacing: 0.02em;
+      display: block;
+    }
+
+    .m-input {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      background: var(--bg);
+      border: 0.5px solid rgba(0,0,0,0.10);
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .m-input:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(11,46,89,0.07);
+      background: #fff;
+    }
+
+    .m-hint {
+      font-size: 11px;
+      color: var(--hint);
+      margin-top: 4px;
+    }
+
+    #mensajeRegistro {
+      background: #FCEBEB;
+      border: 0.5px solid #A32D2D;
+      border-radius: 7px;
+      color: #501313;
+      font-size: 12px;
+      padding: 9px 12px;
+      margin-bottom: 12px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    #mensajeRegistro.success {
+      background: #EAF3DE;
+      border-color: #639922;
+      color: #27500A;
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 42px;
+      background: var(--red);
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-submit:hover { background: var(--red-hover); }
+
+    /* Mobile topbar */
+    @media (max-width: 600px) {
+      .topbar { padding: 0 1rem; }
+      .topbar-title { display: none; }
+      .btn-nav span { display: none; }
+      .page { padding: 1.25rem 1rem; }
+    }
+  </style>
+</head>
+<body style="opacity: 0; transition: opacity 0.5s ease;">
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <span class="topbar-title">Panel Administrativo</span>
+  </div>
+
+  <div class="topbar-right">
+    <a href="generador.html" target="_blank" class="btn-nav btn-qr">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="3" height="3"/>
+        <rect x="18" y="18" width="3" height="3"/>
+      </svg>
+      <span>Código QR</span>
+    </a>
+
+    <button class="btn-nav btn-add"
+            onclick="document.getElementById('modalRegistro').classList.add('open')">
+      <svg viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5"  y1="12" x2="19" y2="12"/>
+      </svg>
+      <span>Registrar Docente</span>
+    </button>
+
+    <button id="btnSalirAdmin" class="btn-nav btn-exit">
+      <svg viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span>Salir</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── PAGE ── -->
+<div class="page">
+
+  <!-- Stat cards -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Registros hoy</div>
+      <div class="stat-value" id="statHoy">—</div>
+      <div class="stat-sub">asistencias</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total registros</div>
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-sub">en el sistema</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Docentes activos</div>
+      <div class="stat-value" id="statDocentes">—</div>
+      <div class="stat-sub">registrados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Última entrada</div>
+      <div class="stat-value" id="statUltima" style="font-size:14px;padding-top:4px;">—</div>
+      <div class="stat-sub">más reciente</div>
+    </div>
+  </div>
+
+  <!-- Table card -->
+  <div class="main-card">
+    <div class="card-header">
+      <span class="card-header-title">Registros de Asistencia</span>
+      <div class="filters">
+        <input type="date" id="inputFecha" class="filter-input">
+        <button id="btnFiltrar" class="btn-filter btn-search">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Buscar
+        </button>
+        <button id="btnLimpiar" class="btn-filter btn-clear">Ver todos</button>
+        <button id="btnExportar" class="btn-filter btn-excel">
+          <svg viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Excel
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Profesor</th>
+            <th>Cédula</th>
+            <th>Fecha</th>
+            <th>Hora de entrada</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpoTabla">
+          <tr class="empty-row"><td colspan="4">Cargando registros…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modalRegistro"
+     onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h5>Registrar Nuevo Docente</h5>
+      <button class="modal-close"
+              onclick="document.getElementById('modalRegistro').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="formRegistroProfe">
+
+        <div class="m-field">
+          <label class="field-label" for="regNombre">Nombre completo</label>
+          <input type="text" id="regNombre" class="m-input" placeholder="Ej: Ana González" required>
+        </div>
+
+        <div class="m-field">
+          <label class="field-label" for="regCedula">Cédula</label>
+          <input type="text" id="regCedula" class="m-input" placeholder="Ej: V-12345678" required>
+        </div>
+
+        <div class="m-field">
+          <label class="field-label" for="regCorreo">Correo electrónico</label>
+          <input type="email" id="regCorreo" class="m-input" placeholder="correo@ejemplo.com" required>
+        </div>
+
+        <div class="m-field">
+          <label class="field-label" for="regClave">Contraseña temporal</label>
+          <input type="text" id="regClave" class="m-input" value="123456" required>
+          <div class="m-hint">La contraseña por defecto es 123456</div>
+        </div>
+
+        <div id="mensajeRegistro"></div>
+
+        <button type="submit" class="btn-submit" id="btnGuardarProfe">
+          Registrar y Guardar
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

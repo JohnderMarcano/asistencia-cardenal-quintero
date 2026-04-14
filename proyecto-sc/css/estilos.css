@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* Panel Izquierdo Azul */
+.bg-azul-degradado {
+    background: linear-gradient(135deg, #0b2e59 0%, #1557a3 100%);
+    position: relative;
+}
+
+/* Efecto Glassmorphism (Tarjetas transparentes) */
+.glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 15px 20px;
+    transition: transform 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateX(10px);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.glass-icon {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 1.2rem;
+}
+
+/* Panel Derecho Blanco */
+.panel-derecho {
+    background-color: #ffffff;
+    border-top-left-radius: 40px;
+    border-bottom-left-radius: 40px;
+    box-shadow: -15px 0 30px rgba(0,0,0,0.05);
+    z-index: 2;
+}
+
+/* Línea roja decorativa */
+.linea-roja-top {
+    width: 40px;
+    height: 4px;
+    background-color: #d32f2f;
+    border-radius: 2px;
+    margin-bottom: 15px;
+}
+
+/* Estilos de los Inputs (Cajas de texto) */
+.input-icono {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-icono i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 1.2rem;
+}
+
+.input-icono input {
+    height: 55px;
+    padding-left: 45px;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 0.95rem;
+}
+
+.input-icono input:focus {
+    background-color: #eef4fc;
+    border-color: #1557a3;
+    box-shadow: 0 0 0 0.25rem rgba(21, 87, 163, 0.1);
+}
+
+/* Botón Rojo */
+.btn-rojo-login {
+    background: linear-gradient(to right, #d32f2f, #e53935);
+    color: white;
+    height: 55px;
+    border-radius: 10px;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-rojo-login:hover {
+    background: linear-gradient(to right, #b71c1c, #d32f2f);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(211, 47, 47, 0.3);
+    color: white;
+}
+
+/* Tarjeta del IUJO */
+.iujo-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    background-color: #fcfcfc;
+}

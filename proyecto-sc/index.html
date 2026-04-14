@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistencia – U.E.N Cardenal Quintero</title>
+  <link rel="icon" type="image/png" href="assest/logo-colegio.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+  <style>
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #0B2E59;
+      --red:         #E63B2E;
+      --red-hover:   #C93325;
+      --bg-right:    #F7F6F2;
+      --text-muted:  #8A8A85;
+      --text-hint:   #B0AFA9;
+      --border:      rgba(0,0,0,0.10);
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--bg-right);
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ──────────────────────────────
+       LEFT PANEL (ESCALADO AL 125%)
+    ────────────────────────────── */
+    .left-panel {
+      flex: 0 0 55%;
+      background: var(--navy);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4rem 2rem;
+      overflow: hidden;
+    }
+
+    /* Círculos de fondo */
+    .left-panel::before {
+      content: ''; position: absolute; width: 550px; height: 550px;
+      border-radius: 50%; border: 70px solid rgba(255,255,255,0.04);
+      top: -160px; right: -180px; pointer-events: none;
+    }
+
+    .left-panel::after {
+      content: ''; position: absolute; width: 320px; height: 320px;
+      border-radius: 50%; border: 50px solid rgba(255,255,255,0.04);
+      bottom: 40px; left: -100px; pointer-events: none;
+    }
+
+    /* Contenedores centrados y más anchos */
+    .school-logo, .left-hero, .feature-list {
+      max-width: 520px; /* Aumentado para el efecto 125% */
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Logo row */
+    .school-logo { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+    .logo-mark {
+      width: 44px; height: 44px; /* Más grande */
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .logo-mark svg { width: 22px; height: 22px; }
+    .logo-name {
+      font-size: 13px; /* Más grande */
+      font-weight: 500; color: rgba(255,255,255,0.55);
+      letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.45;
+    }
+
+    /* Hero text */
+    .left-hero { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 2.5rem 0; position: relative; z-index: 1; }
+    .tag-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.13);
+      border-radius: 20px; padding: 6px 16px; font-size: 12px; /* Más grande */
+      color: rgba(255,255,255,0.60); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.5rem; width: fit-content;
+    }
+    .tag-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+    .left-hero h1 { font-family: 'DM Serif Display', serif; font-size: 4rem; /* Súper imponente */ color: #ffffff; line-height: 1.1; margin-bottom: 1.2rem; font-weight: 400; }
+    .left-hero p { font-size: 16px; /* Letra de lectura cómoda */ color: rgba(255,255,255,0.42); line-height: 1.75; max-width: 400px; }
+
+    /* Feature cards */
+    .feature-list { display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+    .feature-item {
+      display: flex; align-items: center; gap: 16px; padding: 16px 18px; /* Más espacio interior */
+      background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 12px;
+    }
+    .feature-icon {
+      width: 42px; height: 42px; flex-shrink: 0; border-radius: 10px;
+      background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;
+    }
+    .feature-icon svg { width: 18px; height: 18px; stroke: rgba(255,255,255,0.68); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .feature-text strong { display: block; font-size: 15px; /* Más grande */ font-weight: 500; color: rgba(255,255,255,0.88); line-height: 1.3; }
+    .feature-text span { font-size: 13.5px; /* Más grande */ color: rgba(255,255,255,0.36); }
+
+    /* ──────────────────────────────
+       RIGHT PANEL (ESCALADO AL 125%)
+    ────────────────────────────── */
+    .right-panel {
+      flex: 0 0 45%; background: var(--bg-right); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 3rem 3.5rem; position: relative;
+    }
+
+    .right-panel::before {
+      content: ''; position: absolute; top: 50%; left: 0; transform: translateY(-50%);
+      width: 4px; height: 100px; background: var(--red); border-radius: 0 4px 4px 0;
+    }
+
+    .form-area {
+      max-width: 460px; /* Aumentado para el efecto 125% */
+      width: 100%;
+    }
+
+    .form-eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); margin-bottom: 12px; }
+    .form-title { font-family: 'DM Serif Display', serif; font-size: 3rem; font-weight: 400; color: var(--navy); line-height: 1.15; margin-bottom: 8px; }
+    .form-subtitle { font-size: 15px; color: var(--text-muted); line-height: 1.65; margin-bottom: 2rem; }
+
+    /* Fields */
+    .field-group { display: flex; flex-direction: column; gap: 14px; margin-bottom: 1.5rem; }
+    .field-wrap { position: relative; }
+    .field-wrap .field-icon {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      width: 18px; height: 18px; stroke: #B0AFA9; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none;
+    }
+    .field-wrap input {
+      width: 100%; height: 54px; /* Inputs más altos y cómodos */
+      padding: 0 16px 0 46px; background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; color: #1A1A18; outline: none; transition: all 0.2s;
+    }
+    .field-wrap input::placeholder { color: var(--text-hint); }
+    .field-wrap input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(11,46,89,0.08); }
+
+    #mensajeError {
+      background: #FCEBEB; border: 1px solid #A32D2D; border-radius: 8px; color: #501313;
+      font-size: 14px; padding: 12px 16px; display: none; margin-bottom: 1.5rem; line-height: 1.5;
+    }
+
+    /* Submit button */
+    .btn-login {
+      width: 100%; height: 54px; /* Botón imponente */
+      background: var(--red); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+      font-size: 16px; font-weight: 500; color: #ffffff; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; gap: 10px; transition: background 0.15s, transform 0.1s; letter-spacing: 0.01em; margin-bottom: 2.5rem;
+    }
+    .btn-login:hover  { background: var(--red-hover); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Divider */
+    .divider { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+    .divider hr { flex: 1; border: none; border-top: 1px solid rgba(0,0,0,0.08); }
+    .divider span { font-size: 11px; color: var(--text-hint); letter-spacing: 0.14em; text-transform: uppercase; }
+
+    /* IUJO attribution card */
+    .iujo-card { background: #ffffff; border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; text-align: center; }
+    .iujo-card p { font-size: 12.5px; color: var(--text-hint); margin-bottom: 4px; letter-spacing: 0.02em; }
+    .iujo-card strong { font-size: 14px; font-weight: 500; color: var(--navy); display: block; line-height: 1.4; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      .left-panel { flex: none; padding: 3rem 2rem; min-height: 40vh; }
+      .left-hero h1 { font-size: 3.2rem; }
+      .right-panel { flex: 1; padding: 3rem 2rem; justify-content: flex-start; }
+      .right-panel::before { width: 100px; height: 4px; top: 0; left: 50%; transform: translateX(-50%); border-radius: 0 0 4px 4px; }
+    }
+
+    @media (max-width: 600px) {
+      .feature-list { display: none; } 
+      .left-hero h1 { font-size: 2.5rem; }
+      .left-panel { padding: 2rem 1.5rem; min-height: auto; }
+      .right-panel { padding: 2.5rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <div class="left-panel">
+
+    <div class="school-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span class="logo-name">U.E.N<br>Cardenal Quintero</span>
+    </div>
+
+    <div class="left-hero">
+      <div class="tag-pill">
+        <span class="tag-dot"></span>
+        Sistema de Asistencia
+      </div>
+      <h1>Control<br>Docente<br>Digital.</h1>
+      <p>Modernizando la gestión escolar mediante tecnología QR y respaldo seguro en la nube.</p>
+    </div>
+
+    <div class="feature-list">
+
+      <div class="feature-item">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="3" height="3"/>
+            <rect x="18" y="18" width="3" height="3"/>
+          </svg>
+        </div>
+        <div class="feature-text">
+          <strong>Escaneo Dinámico</strong>
+          <span>Tecnología QR con seguridad diaria</span>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24">
+            <polyline points="16 16 12 12 8 16"/>
+            <line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+          </svg>
+        </div>
+        <div class="feature-text">
+          <strong>Respaldo en la Nube</strong>
+          <span>Registros seguros y accesibles 24/7</span>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <div class="feature-text">
+          <strong>Reportes Automáticos</strong>
+          <span>Exportación de datos para la directiva</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="form-area">
+
+      <p class="form-eyebrow">Acceso al sistema</p>
+      <h2 class="form-title">Bienvenido</h2>
+      <p class="form-subtitle">Identifíquese para registrar su asistencia o acceder al panel de control.</p>
+
+      <form id="loginForm">
+
+        <div class="field-group">
+
+          <div class="field-wrap">
+            <svg class="field-icon" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <input type="email" id="email" placeholder="Correo electrónico" required>
+          </div>
+
+          <div class="field-wrap">
+            <svg class="field-icon" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <input type="password" id="password" placeholder="Contraseña" required>
+          </div>
+
+        </div>
+
+        <div id="mensajeError"></div>
+
+        <button type="submit" class="btn-login">
+          Ingresar al Sistema
+          <svg viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+
+      </form>
+
+      <div class="divider">
+        <hr><span>Info</span><hr>
+      </div>
+
+      <div class="iujo-card">
+        <p>Proyecto de Servicio Comunitario</p>
+        <strong>Instituto Universitario "Jesús Obrero" (IUJO)</strong>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
